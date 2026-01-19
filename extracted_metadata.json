@@ -1,0 +1,253 @@
+{
+  "file": "/home/claude/python_pptx_demo/sample_japanese.pptx",
+  "slide_width_px": 1279,
+  "slide_height_px": 720,
+  "slide_width_inches": 13.33,
+  "slide_height_inches": 7.5,
+  "slides": [
+    {
+      "slide_number": 1,
+      "shapes": [
+        {
+          "shape_id": 2,
+          "shape_name": "TextBox 1",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "2025年度 事業計画",
+          "char_count": 11,
+          "bounding_box": {
+            "left_px": 48,
+            "top_px": 192,
+            "width_px": 1183,
+            "height_px": 144,
+            "left_inches": 0.5,
+            "top_inches": 2.0,
+            "width_inches": 12.33,
+            "height_inches": 1.5
+          },
+          "paragraphs": [
+            {
+              "text": "2025年度 事業計画",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 738,
+          "translation_constraints": {
+            "max_chars_recommended": 664,
+            "box_width_px": 1183,
+            "box_height_px": 144,
+            "primary_font_size_pt": 16
+          }
+        },
+        {
+          "shape_id": 3,
+          "shape_name": "TextBox 2",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "先進AI戦略企画部",
+          "char_count": 9,
+          "bounding_box": {
+            "left_px": 48,
+            "top_px": 336,
+            "width_px": 1183,
+            "height_px": 76,
+            "left_inches": 0.5,
+            "top_inches": 3.5,
+            "width_inches": 12.33,
+            "height_inches": 0.8
+          },
+          "paragraphs": [
+            {
+              "text": "先進AI戦略企画部",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 369,
+          "translation_constraints": {
+            "max_chars_recommended": 332,
+            "box_width_px": 1183,
+            "box_height_px": 76,
+            "primary_font_size_pt": 16
+          }
+        },
+        {
+          "shape_id": 4,
+          "shape_name": "TextBox 3",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "2025年1月",
+          "char_count": 7,
+          "bounding_box": {
+            "left_px": 48,
+            "top_px": 576,
+            "width_px": 1183,
+            "height_px": 48,
+            "left_inches": 0.5,
+            "top_inches": 6.0,
+            "width_inches": 12.33,
+            "height_inches": 0.5
+          },
+          "paragraphs": [
+            {
+              "text": "2025年1月",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 246,
+          "translation_constraints": {
+            "max_chars_recommended": 221,
+            "box_width_px": 1183,
+            "box_height_px": 48,
+            "primary_font_size_pt": 16
+          }
+        }
+      ]
+    },
+    {
+      "slide_number": 2,
+      "shapes": [
+        {
+          "shape_id": 2,
+          "shape_name": "TextBox 1",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "主要な取り組み",
+          "char_count": 7,
+          "bounding_box": {
+            "left_px": 48,
+            "top_px": 28,
+            "width_px": 1183,
+            "height_px": 76,
+            "left_inches": 0.5,
+            "top_inches": 0.3,
+            "width_inches": 12.33,
+            "height_inches": 0.8
+          },
+          "paragraphs": [
+            {
+              "text": "主要な取り組み",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 369,
+          "translation_constraints": {
+            "max_chars_recommended": 332,
+            "box_width_px": 1183,
+            "box_height_px": 76,
+            "primary_font_size_pt": 16
+          }
+        },
+        {
+          "shape_id": 3,
+          "shape_name": "TextBox 2",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "AI翻訳システムの開発\n社内プレゼンテーションの自動翻訳を実現し、グローバルコミュニケーションを促進します。\nレイアウト保持機能\n元のスライドデザインを維持しながら、テキストのみを翻訳します。",
+          "char_count": 96,
+          "bounding_box": {
+            "left_px": 48,
+            "top_px": 144,
+            "width_px": 528,
+            "height_px": 384,
+            "left_inches": 0.5,
+            "top_inches": 1.5,
+            "width_inches": 5.5,
+            "height_inches": 4.0
+          },
+          "paragraphs": [
+            {
+              "text": "AI翻訳システムの開発",
+              "font_size_pt": null
+            },
+            {
+              "text": "社内プレゼンテーションの自動翻訳を実現し、グローバルコミュニケーションを促進します。",
+              "font_size_pt": null
+            },
+            {
+              "text": "レイアウト保持機能",
+              "font_size_pt": null
+            },
+            {
+              "text": "元のスライドデザインを維持しながら、テキストのみを翻訳します。",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 880,
+          "translation_constraints": {
+            "max_chars_recommended": 792,
+            "box_width_px": 528,
+            "box_height_px": 384,
+            "primary_font_size_pt": 16
+          }
+        },
+        {
+          "shape_id": 4,
+          "shape_name": "TextBox 3",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "期待される効果\n• 翻訳時間: 2-3時間 → 5分\n• コスト削減: 年間約500万円\n• 品質向上: 一貫した用語使用",
+          "char_count": 61,
+          "bounding_box": {
+            "left_px": 624,
+            "top_px": 144,
+            "width_px": 607,
+            "height_px": 384,
+            "left_inches": 6.5,
+            "top_inches": 1.5,
+            "width_inches": 6.33,
+            "height_inches": 4.0
+          },
+          "paragraphs": [
+            {
+              "text": "期待される効果",
+              "font_size_pt": null
+            },
+            {
+              "text": "• 翻訳時間: 2-3時間 → 5分",
+              "font_size_pt": null
+            },
+            {
+              "text": "• コスト削減: 年間約500万円",
+              "font_size_pt": null
+            },
+            {
+              "text": "• 品質向上: 一貫した用語使用",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 1008,
+          "translation_constraints": {
+            "max_chars_recommended": 907,
+            "box_width_px": 607,
+            "box_height_px": 384,
+            "primary_font_size_pt": 16
+          }
+        },
+        {
+          "shape_id": 5,
+          "shape_name": "TextBox 4",
+          "shape_type": "TEXT_BOX (17)",
+          "text": "機密 - 社内使用限定",
+          "char_count": 11,
+          "bounding_box": {
+            "left_px": 48,
+            "top_px": 624,
+            "width_px": 1183,
+            "height_px": 48,
+            "left_inches": 0.5,
+            "top_inches": 6.5,
+            "width_inches": 12.33,
+            "height_inches": 0.5
+          },
+          "paragraphs": [
+            {
+              "text": "機密 - 社内使用限定",
+              "font_size_pt": null
+            }
+          ],
+          "estimated_max_chars": 246,
+          "translation_constraints": {
+            "max_chars_recommended": 221,
+            "box_width_px": 1183,
+            "box_height_px": 48,
+            "primary_font_size_pt": 16
+          }
+        }
+      ]
+    }
+  ]
+}
