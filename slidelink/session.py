@@ -79,7 +79,7 @@ class SessionManager:
     def update_translations(
         self,
         session_id: str,
-        translations: Dict[int, TranslationPreviewItem]
+        translations: Dict[str, TranslationPreviewItem]
     ) -> bool:
         """Update translations for a session"""
         with self._lock:
@@ -92,20 +92,37 @@ class SessionManager:
     def update_single_translation(
         self,
         session_id: str,
-        shape_id: int,
+        shape_key: str,
         translated_text: str
     ) -> bool:
         """Update a single translation"""
         with self._lock:
             session = self._sessions.get(session_id)
-            if not session or shape_id not in session.translations:
+            if not session or shape_key not in session.translations:
                 return False
 
-            item = session.translations[shape_id]
+            item = session.translations[shape_key]
             item.translated = translated_text
             item.char_count = len(translated_text)
             item.fits_box = item.char_count <= item.max_chars
             return True
+
+    def append_chat(self, session_id: str, role: str, content: str) -> bool:
+        """Append a chat message to session history"""
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if not session:
+                return False
+            session.chat_history.append({"role": role, "content": content})
+            return True
+
+    def get_chat_history(self, session_id: str) -> list:
+        """Get chat history for a session"""
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if not session:
+                return []
+            return list(session.chat_history)
 
     def set_output_path(self, session_id: str, output_path: str) -> bool:
         """Set the output file path after reconstruction"""

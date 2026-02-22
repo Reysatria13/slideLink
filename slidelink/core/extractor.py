@@ -7,6 +7,7 @@ information needed for constraint-aware translation.
 
 from pptx import Presentation
 from pptx.util import Emu
+from pptx.enum.dml import MSO_FILL
 from typing import List, Optional
 from dataclasses import dataclass, field
 
@@ -40,6 +41,10 @@ class ShapeData:
     """Extracted data for a single shape"""
     shape_id: int
     shape_name: str
+    shape_type: str
+    rotation: float
+    bg_color: Optional[str]
+    font_color: Optional[str]
     slide_index: int
     text: str
     paragraphs: List[Paragraph]
@@ -108,11 +113,20 @@ def extract_presentation(pptx_path: str) -> ExtractionResult:
         for shape in slide.shapes:
             if not shape.has_text_frame:
                 continue
+                
+            # Extract background color if available
+            bg_color = None
+            if hasattr(shape, 'fill') and getattr(shape.fill, 'type', None) == MSO_FILL.SOLID:
+                if hasattr(shape.fill.fore_color, 'rgb') and shape.fill.fore_color.rgb:
+                    bg_color = '#' + str(shape.fill.fore_color.rgb)
+                elif hasattr(shape.fill.fore_color, 'theme_color'):
+                    bg_color = 'theme_' + str(shape.fill.fore_color.theme_color)
 
             # Collect paragraphs
             paragraphs = []
             full_text_parts = []
             primary_font_size = 16.0
+            primary_font_color = None
 
             for para in shape.text_frame.paragraphs:
                 para_text = para.text.strip()
@@ -124,11 +138,21 @@ def extract_presentation(pptx_path: str) -> ExtractionResult:
                 # Get font info from first run
                 font_size = None
                 font_bold = False
+                font_color = None
                 if para.runs:
                     if para.runs[0].font.size:
                         font_size = para.runs[0].font.size.pt
                         primary_font_size = font_size
                     font_bold = para.runs[0].font.bold or False
+                    
+                    if hasattr(para.runs[0].font, 'color') and para.runs[0].font.color:
+                        color_obj = para.runs[0].font.color
+                        if hasattr(color_obj, 'type') and color_obj.type == MSO_FILL.SOLID:
+                            if hasattr(color_obj, 'rgb') and color_obj.rgb:
+                                font_color = '#' + str(color_obj.rgb)
+                            elif hasattr(color_obj, 'theme_color'):
+                                font_color = 'theme_' + str(color_obj.theme_color)
+                        primary_font_color = font_color or primary_font_color
 
                 paragraphs.append(Paragraph(
                     text=para_text,
@@ -164,6 +188,10 @@ def extract_presentation(pptx_path: str) -> ExtractionResult:
             shape_data = ShapeData(
                 shape_id=shape.shape_id,
                 shape_name=shape.name,
+                shape_type=str(shape.shape_type),
+                rotation=float(getattr(shape, 'rotation', 0.0)),
+                bg_color=bg_color,
+                font_color=primary_font_color,
                 slide_index=slide_idx,
                 text=full_text,
                 paragraphs=paragraphs,

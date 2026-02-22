@@ -11,7 +11,7 @@ import logging
 from typing import Optional
 from dataclasses import dataclass
 
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 from .extractor import ShapeData
@@ -32,29 +32,33 @@ class TranslationResult:
     max_chars: int
     fits_box: bool
     was_shortened: bool = False
+    alternative_short: Optional[str] = None
+    confidence: float = 1.0
 
 
 class Translator:
     """Gemini-powered translator with bounding box constraints"""
 
-    TRANSLATION_PROMPT = """Translate the following text from {source_lang} to {target_lang}.
+    TRANSLATION_PROMPT = """Translate the following text from {source_lang} to {target_lang} with layout constraints.
 
-TEXT:
+ORIGINAL TEXT:
 {text}
 
-CONSTRAINTS:
-- Bounding box: {width}px x {height}px
+LAYOUT CONSTRAINTS:
+- Bounding box: {width}px × {height}px
 - Font size: {font_size}pt
 - Maximum recommended characters: {max_chars}
+- Original character count: {original_char_count}
 
-RULES:
-1. Translation must be concise to fit the bounding box
-2. Preserve tone (formal/informal)
-3. Keep proper nouns unchanged
-4. If translation is naturally short enough, use it directly
+TRANSLATION RULES:
+1. Translation MUST be concise enough to fit the bounding box
+2. Prefer concise business English
+3. If direct translation exceeds {max_chars} characters, provide a shortened alternative
+4. Preserve tone (formal/informal)
+5. Keep proper nouns unchanged
 
 Return ONLY valid JSON (no markdown, no code blocks):
-{{"translation": "your translation", "char_count": <number>}}"""
+{{"translation": "your translation", "char_count": <number>, "fits_box": true, "confidence": 0.95, "alternative_short": null}}"""
 
     SHORTEN_PROMPT = """The translation "{translation}" is too long ({char_count} chars, max {max_chars}).
 Provide a shorter version that preserves the core meaning.
@@ -64,7 +68,22 @@ IMPORTANT: Be more concise. Use abbreviations if appropriate. Remove non-essenti
 Return ONLY valid JSON (no markdown, no code blocks):
 {{"translation": "shorter version", "char_count": <number>}}"""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-3-pro-preview"):
+    BATCH_PROMPT = """Translate these {source_lang} texts to {target_lang}. Each has bounding box constraints.
+
+TEXTS TO TRANSLATE:
+{items_json}
+
+For EACH item, provide a translation that fits within max_chars.
+If translation is too long, provide alternative_short.
+Prefer concise business English. Preserve tone and keep proper nouns unchanged.
+
+Respond with ONLY a valid JSON array (no markdown, no code blocks):
+[
+  {{"id": 0, "translation": "...", "char_count": 42, "fits_box": true, "confidence": 0.95, "alternative_short": null}},
+  ...
+]"""
+
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.5-flash"):
         """
         Initialize the translator.
 
@@ -80,8 +99,8 @@ Return ONLY valid JSON (no markdown, no code blocks):
                 "GEMINI_API_KEY not found. Set it in .env or pass api_key parameter."
             )
 
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(model)
+        self.client = genai.Client(api_key=self.api_key)
+        self.model_name = model
         self.source_lang = "Japanese"
         self.target_lang = "English"
 
@@ -110,12 +129,12 @@ Return ONLY valid JSON (no markdown, no code blocks):
         height: int,
         font_size: float,
         max_chars: int
-    ) -> tuple[str, int]:
+    ) -> dict:
         """
         Translate a single text with constraints.
 
         Returns:
-            Tuple of (translated_text, char_count)
+            Dict with translation, char_count, fits_box, confidence, alternative_short
         """
         prompt = self.TRANSLATION_PROMPT.format(
             source_lang=self.source_lang,
@@ -124,13 +143,22 @@ Return ONLY valid JSON (no markdown, no code blocks):
             width=width,
             height=height,
             font_size=font_size,
-            max_chars=max_chars
+            max_chars=max_chars,
+            original_char_count=len(text)
         )
 
-        response = self.model.generate_content(prompt)
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
         result = self._parse_json_response(response.text)
 
-        return result["translation"], result["char_count"]
+        return {
+            "translation": result["translation"],
+            "char_count": result.get("char_count", len(result["translation"])),
+            "fits_box": result.get("fits_box", True),
+            "confidence": result.get("confidence", 1.0),
+            "alternative_short": result.get("alternative_short"),
+        }
 
     def _shorten_translation(
         self,
@@ -150,7 +178,9 @@ Return ONLY valid JSON (no markdown, no code blocks):
             max_chars=max_chars
         )
 
-        response = self.model.generate_content(prompt)
+        response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
         result = self._parse_json_response(response.text)
 
         return result["translation"], result["char_count"]
@@ -173,7 +203,7 @@ Return ONLY valid JSON (no markdown, no code blocks):
         max_chars = int(shape.estimated_max_chars * 0.9)  # 90% safety margin
 
         # First translation attempt
-        translated, char_count = self._translate_single(
+        result = self._translate_single(
             text=shape.text,
             width=bbox.width,
             height=bbox.height,
@@ -181,6 +211,10 @@ Return ONLY valid JSON (no markdown, no code blocks):
             max_chars=max_chars
         )
 
+        translated = result["translation"]
+        char_count = result["char_count"]
+        confidence = result["confidence"]
+        alternative_short = result["alternative_short"]
         was_shortened = False
         fits_box = char_count <= max_chars
 
@@ -216,19 +250,121 @@ Return ONLY valid JSON (no markdown, no code blocks):
             char_count=char_count,
             max_chars=max_chars,
             fits_box=fits_box,
-            was_shortened=was_shortened
+            was_shortened=was_shortened,
+            alternative_short=alternative_short,
+            confidence=confidence
         )
 
-    def translate_all(self, shapes: list[ShapeData]) -> list[TranslationResult]:
+    def translate_batch(
+        self,
+        shapes: list[ShapeData],
+        batch_size: int = 15
+    ) -> list[TranslationResult]:
+        """
+        Batch translate multiple shapes in one API call for performance.
+
+        Groups up to batch_size shapes per API call, reducing total calls
+        by ~85-90% (e.g., 145 shapes = 10 calls instead of 145).
+
+        Falls back to sequential translation if batch parsing fails.
+
+        Args:
+            shapes: List of ShapeData from extraction
+            batch_size: Max shapes per API call (default 15)
+
+        Returns:
+            List of TranslationResult for each shape
+        """
+        results = []
+        total = len(shapes)
+
+        for i in range(0, total, batch_size):
+            batch = shapes[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            total_batches = (total + batch_size - 1) // batch_size
+            logger.info(
+                f"Translating batch {batch_num}/{total_batches} "
+                f"({len(batch)} shapes)"
+            )
+
+            # Build batch items
+            items = []
+            for idx, shape in enumerate(batch):
+                bbox = shape.bounding_box
+                max_chars = int(shape.estimated_max_chars * 0.9)
+                items.append({
+                    "id": idx,
+                    "shape_id": shape.shape_id,
+                    "text": shape.text,
+                    "max_chars": max_chars,
+                    "box_width_px": bbox.width,
+                    "box_height_px": bbox.height,
+                    "font_size_pt": shape.primary_font_size_pt,
+                })
+
+            prompt = self.BATCH_PROMPT.format(
+                source_lang=self.source_lang,
+                target_lang=self.target_lang,
+                items_json=json.dumps(items, ensure_ascii=False, indent=2)
+            )
+
+            try:
+                response = self.client.models.generate_content(
+            model=self.model_name, contents=prompt
+        )
+                batch_results = self._parse_json_response(response.text)
+
+                if not isinstance(batch_results, list):
+                    raise ValueError("Expected JSON array from batch response")
+
+                for item, shape in zip(batch_results, batch):
+                    max_chars = int(shape.estimated_max_chars * 0.9)
+                    translation = item["translation"]
+                    char_count = item.get("char_count", len(translation))
+                    fits_box = item.get("fits_box", char_count <= max_chars)
+
+                    results.append(TranslationResult(
+                        shape_id=shape.shape_id,
+                        slide_index=shape.slide_index,
+                        original_text=shape.text,
+                        translated_text=translation,
+                        char_count=char_count,
+                        max_chars=max_chars,
+                        fits_box=fits_box,
+                        was_shortened=False,
+                        alternative_short=item.get("alternative_short"),
+                        confidence=item.get("confidence", 1.0),
+                    ))
+
+            except Exception as e:
+                logger.warning(
+                    f"Batch translation failed: {e}. "
+                    f"Falling back to sequential for this batch."
+                )
+                for shape in batch:
+                    results.append(self.translate_shape(shape))
+
+        return results
+
+    def translate_all(
+        self,
+        shapes: list[ShapeData],
+        use_batch: bool = True
+    ) -> list[TranslationResult]:
         """
         Translate all shapes in a presentation.
 
         Args:
             shapes: List of ShapeData from extraction
+            use_batch: If True, use batch translation for performance.
+                       If False, translate one at a time.
 
         Returns:
             List of TranslationResult for each shape
         """
+        if use_batch and len(shapes) > 1:
+            return self.translate_batch(shapes)
+
         results = []
         total = len(shapes)
 

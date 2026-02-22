@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 class TranslationEdit(BaseModel):
     """Single translation edit from user"""
     shape_id: int
+    slide_index: int = 0
     translated: str
 
 
@@ -38,12 +39,19 @@ class TranslationPreviewItem(BaseModel):
     shape_id: int
     slide_index: int
     shape_name: str
+    shape_type: str = "unknown"
+    rotation: float = 0.0
+    bg_color: Optional[str] = None
+    font_color: Optional[str] = None
+    font_size_pt: Optional[float] = None
     original: str
     translated: str
     char_count: int
     max_chars: int
     fits_box: bool
     was_shortened: bool = False
+    alternative_short: Optional[str] = None
+    confidence: float = 1.0
     bounding_box: BoundingBoxResponse
 
 
@@ -54,6 +62,8 @@ class UploadResponse(BaseModel):
     target_lang: str
     slide_count: int
     shape_count: int
+    slide_width_px: Optional[int] = None
+    slide_height_px: Optional[int] = None
     preview: List[TranslationPreviewItem]
 
 
@@ -78,6 +88,31 @@ class ErrorResponse(BaseModel):
     detail: Optional[str] = None
 
 
+class ChatAction(BaseModel):
+    type: str
+    target_shape_id: Optional[int] = None
+    slide_index: Optional[int] = None
+    property: Optional[str] = None
+    value: Optional[str] = None
+    text: Optional[str] = None
+    shape_type: Optional[str] = None
+    bounding_box: Optional[Dict] = None
+
+class ChatSource(BaseModel):
+    title: str
+    url: str
+
+class ChatRequest(BaseModel):
+    message: str
+    slide_context: List[dict]
+
+class ChatResponse(BaseModel):
+    message: str
+    thinking: List[str] = Field(default_factory=list)
+    actions: List[ChatAction] = Field(default_factory=list)
+    sources: List[ChatSource] = Field(default_factory=list)
+
+
 # ============================================================
 # Internal Session Data
 # ============================================================
@@ -90,5 +125,6 @@ class SessionData(BaseModel):
     target_lang: str
     slide_count: int
     created_at: float
-    translations: Dict[int, TranslationPreviewItem] = Field(default_factory=dict)
+    translations: Dict[str, TranslationPreviewItem] = Field(default_factory=dict)
+    chat_history: List[Dict] = Field(default_factory=list)
     output_file_path: Optional[str] = None

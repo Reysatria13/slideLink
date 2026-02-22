@@ -232,22 +232,24 @@ def reconstruct_presentation(original_path, translated_data, output_path):
     # Open original as template
     prs = Presentation(original_path)
     
-    # Map shape_id to translated content
+    # Map (slide_index, shape_id) to translated content
     translation_map = {}
     for slide_data in translated_data["slides"]:
         for shape_data in slide_data["shapes"]:
-            translation_map[shape_data["shape_id"]] = shape_data["paragraphs"]
+            key = (slide_data["slide_index"], shape_data["shape_id"])
+            translation_map[key] = shape_data["paragraphs"]
     
     # Update text in each shape
-    for slide in prs.slides:
+    for slide_idx, slide in enumerate(prs.slides):
         for shape in slide.shapes:
             if not shape.has_text_frame:
                 continue
             
-            if shape.shape_id not in translation_map:
+            key = (slide_idx, shape.shape_id)
+            if key not in translation_map:
                 continue
             
-            translated_paras = translation_map[shape.shape_id]
+            translated_paras = translation_map[key]
             
             # Match paragraphs and update text
             for i, para in enumerate(shape.text_frame.paragraphs):

@@ -36,21 +36,22 @@ def reconstruct_presentation(
     # Open original as template
     prs = Presentation(original_path)
 
-    # Create lookup: shape_id -> translated_text
-    translation_map: Dict[int, str] = {
-        t.shape_id: t.translated_text for t in translations
+    # Create lookup: (slide_index, shape_id) -> translated_text
+    translation_map = {
+        (t.slide_index, t.shape_id): t.translated_text for t in translations
     }
 
     # Update text in each shape
-    for slide in prs.slides:
+    for slide_idx, slide in enumerate(prs.slides):
         for shape in slide.shapes:
             if not shape.has_text_frame:
                 continue
 
-            if shape.shape_id not in translation_map:
+            key = (slide_idx, shape.shape_id)
+            if key not in translation_map:
                 continue
 
-            translated_text = translation_map[shape.shape_id]
+            translated_text = translation_map[key]
 
             # Split translated text by newlines to match paragraphs
             translated_parts = translated_text.split("\n")
@@ -84,7 +85,7 @@ def reconstruct_presentation(
 
 def reconstruct_with_custom_translations(
     original_path: str,
-    translations: Dict[int, str],
+    translations: dict,
     output_path: str = None
 ) -> str:
     """
@@ -94,7 +95,7 @@ def reconstruct_with_custom_translations(
 
     Args:
         original_path: Path to the original PPTX file
-        translations: Dict mapping shape_id -> translated_text
+        translations: Dict mapping (slide_index, shape_id) -> translated_text
         output_path: Optional output path
 
     Returns:
@@ -106,15 +107,16 @@ def reconstruct_with_custom_translations(
 
     prs = Presentation(original_path)
 
-    for slide in prs.slides:
+    for slide_idx, slide in enumerate(prs.slides):
         for shape in slide.shapes:
             if not shape.has_text_frame:
                 continue
 
-            if shape.shape_id not in translations:
+            key = (slide_idx, shape.shape_id)
+            if key not in translations:
                 continue
 
-            translated_text = translations[shape.shape_id]
+            translated_text = translations[key]
             translated_parts = translated_text.split("\n")
 
             for i, para in enumerate(shape.text_frame.paragraphs):
